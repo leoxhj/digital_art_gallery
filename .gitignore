@@ -3,3 +3,8 @@
 
 # Ada Library Information
 *.ali
+
+# Local secrets and dependencies
+.env
+node_modules/
+dist/

@@ -1,0 +1,193 @@
+Digital Art Gallery Design
+==========================
+
+Current Design Summary
+----------------------
+
+Purpose
+The gallery presents an artist's artwork as a browsable, searchable collection, with artwork metadata and image files stored in PostgreSQL.
+
+Gallery browsing
+- Artwork appears in a responsive gallery grid with a physical-looking, warm wood frame, beveled edge, cream mat, and soft shadow.
+- Section tabs show artwork counts. One artwork may belong to multiple sections and is counted once in each applicable section.
+- Search checks title, description, creation date, age, medium, section names, and artwork ID. Search combines with section and age filters.
+- Age can be filtered with values present in the collection and sorted low-to-high or high-to-low. Newest-first is the default sort.
+- Selection mode supports selecting multiple existing artworks and deleting them with confirmation.
+
+Artwork details
+- The detail popup shares the gallery's image frame and mat. It fits the picture without cropping.
+- Clicking the framed picture opens the source image at its original dimensions in a scrollable viewer.
+- The original-size viewer provides a download action that generates a full-resolution watermarked copy; the stored source image remains unchanged.
+- Description paragraphs preserve line breaks and indentation. Portrait descriptions appear beside the image; landscape and square descriptions appear below it.
+- Creation dates are returned and displayed as YYYY-MM-DD to avoid timezone shifts.
+- Modify and delete actions are available from the detail popup. Deletion uses an in-app confirmation dialog.
+
+Upload and editing
+- The Add artwork button opens a viewport-centered modal that scrolls internally.
+- Up to five images may be uploaded in one batch, with one artwork record created per image and the same submitted metadata applied to each.
+- Multiple gallery sections are entered with a vertical bar, for example: Space | Portraits.
+- The author birthday is configured with AUTHOR_BIRTHDAY in .env. Selecting an artwork creation date calculates the artist's age for that date. On API startup, existing artwork ages are recalculated from their creation dates.
+- ARTWORK_AUTHOR in .env supplies a copyright watermark using each artwork's creation year. WATERMARK_OPACITY in .env controls its visibility from 0 to 1, and WATERMARK_FONT_SIZE controls its pixel size. The tiled watermark overlays gallery, detail, and original-size views; stored image files remain unchanged.
+
+Language
+- English and Chinese interface text is translated at runtime through a server-side LibreTranslate proxy.
+- Translation credentials are configured only on the server. If the provider is unavailable, the interface falls back to English.
+
+Conversation Log  (2026-11-03 UTC)
+----------------
+This log records the visible user requests in chronological order and the corresponding implementation outcomes. Terminal output and intermediate progress messages are omitted.
+
+1. User: "for the detail of pop up window, add modify button to edit"
+   Outcome: Added a modify mode to the artwork detail popup and an API update route for metadata and optional image replacement.
+
+2. User: "I tried to modify the art age from 9 to 10, but I got error unable to modify"
+   Outcome: Diagnosed that the running API had not loaded the update route; restarting the API loaded the current server code.
+
+3. User: "add a new column 'description' in database table to describe the topic of the picture, update the frontend code accordingly"
+   Outcome: Added the description column and migration, exposed it through the API, and added upload, edit, and detail display support.
+
+4. User: "there is no column add in database table"
+   Outcome: Applied and verified the description-column migration against the configured PostgreSQL database.
+
+5. User: "I update description, but it didn't save to table"
+   Outcome: Found the old API process was still running, restarted it, and verified the API returned the description field.
+
+6. User: "the description context I saved is inconsistent with the display, there is no any paragraph or any indent anymore"
+   Outcome: Preserved description line breaks, paragraphs, and first-line indentation in the detail view.
+
+7. User: "there is a big white area in the pop up windows in left side, could you change a bit for the picture display?"
+   Outcome: Tightened the picture matte and changed it to a muted gallery-neutral background.
+
+8. User: "resize the frame to fit the picture"
+   Outcome: Sized the detail frame to the image's natural aspect ratio while constraining it to the viewport.
+
+9. User: "in the pop up window, I can click on the picture then display the original size picture"
+   Outcome: Added a clickable original-size viewer with scrolling, backdrop dismissal, a close control, and Escape support.
+
+10. User: "put the description under the picture"
+    Outcome: Moved the description to the image column below the picture.
+
+11. User: "for vertical picture, put description in right side, for horizontal picture, put under picture"
+    Outcome: Used image dimensions to place portrait descriptions beside the image and landscape or square descriptions below it.
+
+12. User: "deletion confirmation pop window change in  the middle and make to more modern way"
+    Outcome: Replaced the browser prompt with a centered, localized in-app confirmation dialog.
+
+13. User: "for chinese / english translator, could you use dynamic engine to translate instead of hard coding"
+    Outcome: Replaced embedded Chinese strings with a server-side LibreTranslate integration. The provider requires a reachable endpoint and, where required, an API key.
+
+14. User: "gallery selection, enable multiple selection"
+    User clarification: Existing gallery artworks and uploads; bulk delete selected artworks.
+    Outcome: Added gallery selection mode, select-visible controls, bulk deletion, and uploads of up to five images per batch.
+
+15. User: "the 'add artwork' button should open pop up window in current screen position, no need to scroll up on top of the page"
+    Outcome: Made Add artwork open a centered viewport modal with internal scrolling.
+
+16. User: "the author birthday is 2027.09.04, can you automatical populate the age number when adding a new artwork if date is selected."
+    User correction: "the author birthday is 2017.09.04, can you automatical populate the age number when adding a new artwork if date is selected."
+    Outcome: Added date-based age auto-fill using the corrected birthday, with an editable age field.
+
+17. User: "able to add one picture to multiple sections"
+    Outcome: Added a categories array, a migration for existing records, multiple-section upload/edit fields, and filtering by every assigned section. Section names use a vertical bar separator to preserve commas in existing names.
+
+18. User: "sort gallery use age number as select values, for example, age 5, age, 6, age 7, etc."
+    Outcome: Added an age-number filter populated from the gallery's current ages, alongside age sorting.
+
+19. User: "add caculated total number next to each section, for example, All(52)"
+    Outcome: Added live artwork counts to section tabs, including the total count for All.
+
+20. User: "display  date create in year, month, date format"
+    Outcome: Changed artwork detail dates to the YYYY-MM-DD format.
+
+21. User: "change the photo frame to likes like more real"
+    Outcome: Added a layered wood-toned gallery frame with a beveled edge, cream mat, and softer shadow.
+
+22. User: "change the detailed page photo frame same as photo list page"
+    Outcome: Reused the same wood frame and cream mat in the artwork detail popup.
+
+23. User: "add author birthday as variable in env file, so it can be changed anytime, and recalucate later for the correct age for each artworks"
+    Outcome: Added AUTHOR_BIRTHDAY to .env and .env.example. On API startup, existing artwork ages are recalculated using this configured birthday.
+
+24. User: "why the artwork_date is:2024-02-28, but it display in detail page 2024-02-27"
+    Outcome: Cast PostgreSQL DATE values to text in API responses and verified that the API returns calendar dates as YYYY-MM-DD without timezone conversion.
+
+25. User: "add full text search in the page, can simply search by any text"
+    Outcome: Added search across artwork title, description, creation date, age, medium, section names, and ID, combined with existing filters.
+
+26. User: "add calculated total number next to each section, for example, All(52)"
+    Outcome: The section tabs display a live count for each section and for the entire collection.
+
+27. User: "add a new design text file and add or append all the chat convesion"
+    Outcome: Created this design document with a current behavior summary and visible conversation log.
+
+Yesterday's Chat History (2026-11-02 UTC)
+-----------------------------------------
+The following locally indexed turns are ordered by their stored timestamp. Assistant responses are reproduced as available in the history store; some are truncated there.
+
+08:10:38.285Z
+User: "run in browser"
+Assistant: The gallery is running in the browser at http://localhost:5173/. The Express API is running on port 5001; the category filters and artwork images are loading. I added the Vite/React entry point and local artwork a...
+
+08:15:29.329Z
+User: "could you please make this UI more beatiful, current the ui look to monolic"
+Assistant: The live page confirms the problem: nearly every surface uses the same parchment and dark-brown treatment, and the framing dominates the artwork. I’m reshaping the page into a more colorful exhibition catalogue with a fo...
+
+08:17:02.342Z
+User: "it's about the background and the color"
+Assistant: Updated only the background and colors: the page now has a soft sage grid, a warm marigold header, coral artwork frames, and deep green text and filters. The layout and interactions are unchanged. The browser is showing...
+
+08:21:02.401Z
+User: "could you update the background with a photo like in a virtual exhibition room with ai related photo"
+Assistant: No response was present in the local history record.
+
+08:27:23.487Z
+User: "for the backend server.js code, I would like to connect postgresql database and create a table drawings, all local picture need to be upload to this table, also create feature in main page to have place to upload picture from local computer"
+Assistant: Implemented PostgreSQL-backed artwork storage and the main-page upload flow. The backend creates a drawings table on startup, imports the three bundled illustrations into it once, and serves image data from PostgreS...
+
+08:34:35.546Z
+User: "I can't close the current openned window to add picture to collection, could you check please, please add the function to the right bottom corner"
+Assistant: Added a close control to the upload panel and a fixed Add artwork button in the bottom-right corner that reopens it. I verified both close and reopen actions in the browser, and npm run build passes. Updated museum_gallery.jsx and styles.css.
+
+08:41:32.621Z
+User: "add env variables for postgresql db url, database, database port, username and password"
+Assistant: Added PostgreSQL environment-variable configuration using PGHOST, PGDATABASE, PGPORT, PGUSER, and PGPASSWORD. DATABASE_URL remains supported and takes precedence when set. Updated .env.example...
+
+09:09:05.848Z
+User: "the database variables and values are configured, could you please validate the connection, if it's ok, then create the table in the database and also upload all local pictures to the database table"
+Assistant: PostgreSQL connection succeeded. The server created the drawings table and stored all three catalog artworks, including their image bytes. I verified the filenames and stored sizes. The fourth SVG, virtual-exhibition...
+
+09:14:56.903Z
+User: "open in browser to test now"
+Assistant: The gallery is open at http://localhost:5173/. I verified that all three artworks load from the database, with their category filters visible. The API remains available at http://localhost:5001.
+
+09:23:17.976Z
+User: "If I refresh the main page, the add picture pop up window always displayed"
+Assistant: That happens because the upload panel state is hard-coded to open on every page load. I’ll preserve the dismissed state in browser storage so closing it stays effective after refresh, while keeping it open for first-time...
+
+09:25:39.035Z
+User: "update readme.md file with details of the implementation, tech stacks, how to dev, build, etc."
+Assistant: Expanded README.md with the app’s features and tech stack, PostgreSQL setup and environment variables, development instructions, build/deployment notes, API endpoints, upload constraints, project structure,...
+
+09:29:12.067Z
+User: "add delete funtion to be able to delete any pictures from the UI"
+Assistant: Added deletion from the artwork detail window. It asks for confirmation, shows errors if deletion fails, and removes the artwork from the gallery after a successful response. The backend deletes the database row and imag...
+
+09:34:12.108Z
+User: "if I refresh page, the pop up windows still exist, another issue, all pictures are gone in UI, but data still exists in database that's good"
+Assistant: No response was present in the local history record.
+
+09:40:03.231Z
+User: "create .env file with variables from env"
+Assistant: No response was present in the local history record.
+
+09:42:54.261Z
+User: "don't use local API anymore, instead backend should read the data from database"
+Assistant: Removed the local-file sample seeding dependency. The backend now reads artwork records and image bytes from PostgreSQL; it no longer needs local art files to start. The browser still calls the local Express API, which...
+
+09:52:12.374Z
+User: "add translate on upper right corner to swith between chinese and english"
+Assistant: Added a top-right EN / 中文 switch. It translates the gallery controls, upload form, status messages, delete confirmation, category labels, and artwork details; the selected language persists across refreshes. Artwork...
+
+09:59:45.450Z
+User: "update readme.md accordingly"
+Assistant: Updated README.md to document the English/Chinese switch, persisted language and upload-panel preferences, artwork deletion, and PostgreSQL-only artwork storage. Removed the outdated sample-seeding instructi...

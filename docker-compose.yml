@@ -1,0 +1,38 @@
+services:
+  gallery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: digital-art-gallery:latest
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: "5001"
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGDATABASE: ${PGDATABASE:-digital_art_gallery}
+      PGUSER: ${PGUSER:-gallery}
+      PGPASSWORD: "${PGPASSWORD:?Set PGPASSWORD in .env before starting the container}"
+      DATABASE_URL: ""
+      AUTHOR_BIRTHDAY: ${AUTHOR_BIRTHDAY:-2017-09-04}
+      ARTWORK_AUTHOR: ${ARTWORK_AUTHOR:-}
+      WATERMARK_OPACITY: ${WATERMARK_OPACITY:-0.28}
+      WATERMARK_FONT_SIZE: ${WATERMARK_FONT_SIZE:-16px}
+      LIBRETRANSLATE_URL: ${LIBRETRANSLATE_URL:-https://libretranslate.com/translate}
+      LIBRETRANSLATE_API_KEY: ${LIBRETRANSLATE_API_KEY:-}
+    volumes:
+      - gallery_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:5001/api/config').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  gallery_data:
