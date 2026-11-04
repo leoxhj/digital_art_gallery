@@ -109,9 +109,9 @@ npm run dev
 
 Open the local URL printed by Vite, usually `http://localhost:5173`. Vite proxies `/api` requests to `http://localhost:5001`.
 
-## Docker (Single Container)
+## Docker
 
-The Linux container includes the production-built frontend, Express API, and PostgreSQL 18 from the official PGDG Debian repository. Supervisor runs PostgreSQL and the API in the same container. Database files persist in the `gallery_data` named volume.
+Docker Compose runs two Linux containers: the Node container serves the production-built frontend and Express API, while the official PostgreSQL 18 container stores artwork. Database files persist in the `gallery_data` named volume.
 
 1. Copy `.env.example` to `.env` and set `PGPASSWORD` to a non-placeholder value. Configure `ARTWORK_AUTHOR` and other settings as needed.
 2. Build and start the container:
@@ -120,9 +120,9 @@ The Linux container includes the production-built frontend, Express API, and Pos
 	docker compose up --build -d
 	```
 
-3. Open `http://localhost:5001`. Follow startup and API logs with `docker compose logs -f gallery`.
+3. Open the frontend at `http://localhost:8080`. The API is available on the same origin; port `5001` is also mapped as an alias. Follow logs with `docker compose logs -f gallery db`.
 
-Stop the container with `docker compose down`; the database volume remains. To also erase the database, run `docker compose down -v`.
+Stop both containers with `docker compose down`; the database volume remains. To also erase the database, run `docker compose down -v`.
 
 ## Build
 
@@ -132,7 +132,7 @@ Create an optimized static frontend build:
 npm run build
 ```
 
-Vite writes the frontend output to `dist/`. `npm start` runs the Express API and serves `dist/` when it is present. The Docker image builds the frontend and serves it from Express in the same container.
+Vite writes the frontend output to `dist/`. `npm start` runs the Express API and serves `dist/` when it is present. The Node Docker image builds and serves the frontend alongside the API; PostgreSQL runs separately.
 
 ## API
 
