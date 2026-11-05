@@ -417,9 +417,11 @@ export default function MuseumGallery() {
               max="120"
               placeholder={text.agePlaceholder}
               value={uploadAge}
+              className="upload-field__calculated-input"
               readOnly
               required
             />
+            <small className="upload-field__hint">{text.ageCalculated}</small>
           </label>
           <label className="upload-field">
             <span>{text.medium}</span>

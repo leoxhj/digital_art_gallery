@@ -199,10 +199,17 @@
 	border-color: #287568;
 	outline: 2px solid rgba(40, 117, 104, 0.18);
 }
+.upload-field input.upload-field__calculated-input {
+	color: #50665a;
+	background: #e8eee8;
+	border-style: dashed;
+	cursor: not-allowed;
+}
 
 .upload-field--file { grid-column: span 3; }
 .upload-field--description { grid-column: span 3; }
 .upload-field small { color: #78877e; font-size: 10px; font-weight: 400; }
+.upload-field .upload-field__hint { color: #60766a; }
 
 .upload-actions {
 	grid-column: span 3;

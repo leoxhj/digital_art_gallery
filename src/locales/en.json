@@ -23,6 +23,7 @@
   "titlePlaceholder": "A title for this piece",
   "age": "Artist age",
   "agePlaceholder": "Age",
+  "ageCalculated": "Calculated from creation date",
   "medium": "Medium",
   "mediumPlaceholder": "Watercolor, collage…",
   "category": "Gallery sections (separate with |)",

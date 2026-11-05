@@ -23,6 +23,7 @@
   "titlePlaceholder": "为这件作品取个名字",
   "age": "艺术家年龄",
   "agePlaceholder": "年龄",
+  "ageCalculated": "根据创作日期自动计算",
   "medium": "创作媒介",
   "mediumPlaceholder": "水彩、拼贴画……",
   "category": "展览分区（使用 | 分隔）",
