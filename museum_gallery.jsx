@@ -393,6 +393,18 @@ export default function MuseumGallery() {
             <small>{text.fileTypes}</small>
           </label>
           <label className="upload-field">
+            <span>{text.date}</span>
+            <input
+              name="date"
+              type="date"
+              value={uploadDate}
+              onChange={(event) => {
+                setUploadDate(event.target.value);
+                if (!event.target.value) setUploadAge('');
+              }}
+            />
+          </label>
+          <label className="upload-field">
             <span>{text.title}</span>
             <input name="title" type="text" placeholder={text.titlePlaceholder} maxLength="200" required />
           </label>
@@ -405,7 +417,7 @@ export default function MuseumGallery() {
               max="120"
               placeholder={text.agePlaceholder}
               value={uploadAge}
-              onChange={(event) => setUploadAge(event.target.value)}
+              readOnly
               required
             />
           </label>
@@ -420,18 +432,6 @@ export default function MuseumGallery() {
           <label className="upload-field upload-field--description">
             <span>{text.description}</span>
             <textarea name="description" placeholder={text.descriptionPlaceholder} maxLength="1000" rows="3" />
-          </label>
-          <label className="upload-field">
-            <span>{text.date}</span>
-            <input
-              name="date"
-              type="date"
-              value={uploadDate}
-              onChange={(event) => {
-                setUploadDate(event.target.value);
-                if (!event.target.value) setUploadAge('');
-              }}
-            />
           </label>
           <div className="upload-actions">
             <button type="submit" disabled={isUploading}>
