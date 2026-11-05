@@ -30,8 +30,8 @@ Upload and editing
 - ARTWORK_AUTHOR in .env supplies a copyright watermark using each artwork's creation year. WATERMARK_OPACITY in .env controls its visibility from 0 to 1, and WATERMARK_FONT_SIZE controls its pixel size. The tiled watermark overlays gallery, detail, and original-size views; stored image files remain unchanged.
 
 Language
-- English and Chinese interface text is translated at runtime through a server-side LibreTranslate proxy.
-- Translation credentials are configured only on the server. If the provider is unavailable, the interface falls back to English.
+- English and Simplified Chinese interface text uses bundled i18next resources in src/locales.
+- Built-in section and medium labels are localized; user-defined values fall back to their original text. No translation provider or credentials are required.
 
 
 Chat History (2026-11-02 UTC)
@@ -148,7 +148,7 @@ This log records the visible user requests in chronological order and the corres
     Outcome: Replaced the browser prompt with a centered, localized in-app confirmation dialog.
 
 13. User: "for chinese / english translator, could you use dynamic engine to translate instead of hard coding"
-    Outcome: Replaced embedded Chinese strings with a server-side LibreTranslate integration. The provider requires a reachable endpoint and, where required, an API key.
+    Outcome: Initially replaced embedded Chinese strings with a server-side LibreTranslate integration. On 2026-11-05, that solution was removed in favor of bundled i18next resources for English and Simplified Chinese.
 
 14. User: "gallery selection, enable multiple selection"
     User clarification: Existing gallery artworks and uploads; bulk delete selected artworks.

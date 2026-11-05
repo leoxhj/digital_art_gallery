@@ -41,20 +41,6 @@
 .language-switch__button:hover { color: #1d5e51; background: rgba(40, 117, 104, 0.1); }
 .language-switch__button--active, .language-switch__button--active:hover { color: #fffefa; background: #287568; }
 .language-switch__button:focus-visible { outline: 2px solid #c76d52; outline-offset: 2px; }
-.translation-error {
-	position: absolute;
-	top: 52px;
-	right: 32px;
-	z-index: 4;
-	max-width: min(320px, calc(100vw - 32px));
-	margin: 0;
-	padding: 8px 10px;
-	color: #873e34;
-	background: #fffefa;
-	border: 1px solid #d9a69d;
-	font: 12px/1.4 Arial, sans-serif;
-}
-
 .gallery-heading {
 	padding: 24px 20px 26px;
 	background: linear-gradient(115deg, #fff4d9, #f8e9c5 68%, #f5e6cf);

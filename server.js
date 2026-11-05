@@ -35,7 +35,6 @@ const databaseConfig = process.env.DATABASE_URL
       password: process.env.PGPASSWORD,
     };
 const pool = new Pool(databaseConfig);
-const translationCache = new Map();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_IMAGE_SIZE, files: MAX_ARTWORK_FILES },
@@ -59,61 +58,6 @@ app.get('/api/config', (request, response) => {
     watermarkOpacity: WATERMARK_OPACITY,
     watermarkFontSize: WATERMARK_FONT_SIZE,
   });
-});
-
-async function translateWithLibreTranslate(text, target) {
-  const cacheKey = `${target}:${text}`;
-  if (translationCache.has(cacheKey)) return translationCache.get(cacheKey);
-
-  const payload = { q: text, source: 'auto', target, format: 'text' };
-  if (process.env.LIBRETRANSLATE_API_KEY) payload.api_key = process.env.LIBRETRANSLATE_API_KEY;
-
-  const response = await fetch(
-    process.env.LIBRETRANSLATE_URL || 'https://libretranslate.com/translate',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    },
-  );
-  if (!response.ok) throw new Error(`LibreTranslate returned ${response.status}.`);
-
-  const result = await response.json();
-  if (typeof result.translatedText !== 'string') {
-    throw new Error('LibreTranslate returned an invalid response.');
-  }
-
-  if (translationCache.size >= 3000) {
-    translationCache.delete(translationCache.keys().next().value);
-  }
-  translationCache.set(cacheKey, result.translatedText);
-  return result.translatedText;
-}
-
-app.post('/api/translate', async (request, response) => {
-  const { texts, target } = request.body || {};
-  if (target !== 'zh' || !Array.isArray(texts) || texts.length < 1 || texts.length > 100
-    || texts.some((text) => typeof text !== 'string' || text.length > 1000)) {
-    response.status(400).json({ error: 'Provide up to 100 text strings and a supported target language.' });
-    return;
-  }
-
-  const translations = new Array(texts.length);
-  let nextIndex = 0;
-  try {
-    const workers = Array.from({ length: Math.min(4, texts.length) }, async () => {
-      while (nextIndex < texts.length) {
-        const index = nextIndex;
-        nextIndex += 1;
-        translations[index] = await translateWithLibreTranslate(texts[index], target);
-      }
-    });
-    await Promise.all(workers);
-    response.json({ translations });
-  } catch (error) {
-    console.error(`Translation request failed: ${error.message}`);
-    response.status(502).json({ error: 'The translation service is unavailable.' });
-  }
 });
 
 async function initializeDatabase() {

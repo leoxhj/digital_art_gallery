@@ -1,94 +1,7 @@
 // MuseumGallery.jsx
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { calculateAgeAtDate } from './src/age_calculation.mjs';
-
-const sourceText = {
-  language: 'Language',
-  english: 'EN',
-  chinese: '中文',
-  exhibitionTitle: 'The Retrospective Exhibition',
-  exhibitionSubtitle: 'A Three-Year Collection of Artistic Growth, Author: Rachel Xu',
-  uploadEyebrow: 'Add to the walls',
-  uploadHeading: 'Share a new artwork',
-  closeUpload: 'Close artwork upload panel',
-  closeUploadTitle: 'Close upload panel',
-  image: 'Artwork image',
-  fileTypes: 'Select up to five JPG, PNG, WebP or GIF images · up to 20 MB each',
-  selectArtwork: 'Select artworks',
-  doneSelecting: 'Done selecting',
-  selectVisible: 'Select visible',
-  deselectVisible: 'Deselect visible',
-  selectedCount: '{count} selected',
-  deleteSelected: 'Delete selected',
-  selectionLabel: 'Select artwork',
-  searchArtwork: 'Search artworks',
-  searchPlaceholder: 'Search title, description, date, age, medium, section or ID',
-  title: 'Artwork title',
-  titlePlaceholder: 'A title for this piece',
-  age: 'Artist age',
-  agePlaceholder: 'Age',
-  medium: 'Medium',
-  mediumPlaceholder: 'Watercolor, collage…',
-  category: 'Gallery sections (separate with |)',
-  categoryPlaceholder: 'Space | Portraits',
-  description: 'Description',
-  descriptionPlaceholder: 'What is this picture about?',
-  openOriginalImage: 'View original-size image',
-  closeOriginalImage: 'Close original-size image',
-  downloadWatermarkedImage: 'Download watermarked image',
-  date: 'Date created',
-  edit: 'Modify artwork',
-  cancelEdit: 'Cancel',
-  saveChanges: 'Save changes',
-  savingChanges: 'Saving changes…',
-  editFailure: 'The artwork could not be updated.',
-  uploading: 'Adding artwork…',
-  addToCollection: 'Add to collection',
-  addArtwork: 'Add artwork',
-  all: 'All',
-  sectionCount: '{section}({count})',
-  filterByAge: 'Filter by age',
-  allAges: 'All ages',
-  ageOption: 'Age {age}',
-  filterByYear: 'Filter by year',
-  allYears: 'All years',
-  yearOption: '{year}',
-  sortByAge: 'Sort gallery',
-  sortNewest: 'Newest first',
-  ageLowToHigh: 'Age: low to high',
-  ageHighToLow: 'Age: high to low',
-  loading: 'Loading the collection…',
-  loadError: 'Artwork could not be loaded. Check that the API and PostgreSQL are running, then retry.',
-  retry: 'Retry',
-  empty: 'No artwork in this section yet.',
-  noSearchResults: 'No matching artworks.',
-  artworkDetails: 'Age {age} • {medium}',
-  artistAge: 'Artist, Age {age}',
-  dateLabel: 'Date created:',
-  mediumLabel: 'Medium:',
-  authorLabel: 'Author:',
-  sectionLabel: 'Exhibition Section:',
-  descriptionLabel: 'About this artwork:',
-  collectionId: 'Collection ID: #00{id} • Private Family Archive',
-  delete: 'Delete artwork',
-  deleting: 'Deleting artwork…',
-  deleteConfirmationTitle: 'Delete this artwork?',
-  deleteMultipleConfirmationTitle: 'Delete selected artworks?',
-  cancelDelete: 'Keep artwork',
-  confirmDeleteAction: 'Delete permanently',
-  confirmDelete: 'Delete "{title}" from the collection? This cannot be undone.',
-  confirmDeleteSelected: 'Delete {count} selected artworks? This cannot be undone.',
-  uploadSuccess: 'Artwork added to the collection.',
-  uploadFailure: 'The artwork could not be uploaded.',
-  deleteFailure: 'The artwork could not be deleted.',
-  chooseImageError: 'Choose an image to upload.',
-  metadataError: 'Provide a title, valid age, medium, and at least one section.',
-  imageSizeError: 'Images must be 20 MB or smaller.',
-  imageTypeError: 'Choose a JPG, PNG, WebP, or GIF image.',
-  notFoundError: 'Artwork was not found.',
-  requestError: 'The gallery could not complete that request.',
-  tooManyImagesError: 'Choose no more than five images.',
-};
 
 const errorTextKeys = {
   'Choose an image to upload.': 'chooseImageError',
@@ -101,17 +14,6 @@ const errorTextKeys = {
   'Choose no more than 5 images.': 'tooManyImagesError',
 };
 
-async function translateTexts(texts, target) {
-  const response = await fetch('/api/translate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ texts, target }),
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Translation is unavailable.');
-  return result.translations;
-}
-
 function getDrawingCategories(drawing) {
   return Array.isArray(drawing.categories) && drawing.categories.length > 0
     ? drawing.categories
@@ -119,7 +21,7 @@ function getDrawingCategories(drawing) {
 }
 function formatText(template, values) {
   return Object.entries(values).reduce(
-    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    (result, [key, value]) => result.replaceAll(`{{${key}}}`, String(value)),
     template,
   );
 }
@@ -144,11 +46,11 @@ function ArtworkWatermark({ artwork, author, opacity, fontSize }) {
 }
 
 export default function MuseumGallery() {
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage || i18n.language || 'en';
+  const text = i18n.getResourceBundle(language, 'translation') || i18n.getResourceBundle('en', 'translation');
   const [drawings, setDrawings] = useState([]);
   const [selectedArt, setSelectedArt] = useState(null);
-  const [text, setText] = useState(sourceText);
-  const [translatedLabels, setTranslatedLabels] = useState({});
-  const [translationError, setTranslationError] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
   const [ageFilter, setAgeFilter] = useState('all');
   const [creationYearFilter, setCreationYearFilter] = useState('all');
@@ -166,9 +68,6 @@ export default function MuseumGallery() {
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
-  const [language, setLanguage] = useState(
-    () => window.localStorage.getItem('gallery-language') === 'zh' ? 'zh' : 'en',
-  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [deleteTargetIds, setDeleteTargetIds] = useState([]);
@@ -274,45 +173,12 @@ export default function MuseumGallery() {
     document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
   }, [language]);
 
-  useEffect(() => {
-    let isCurrent = true;
-    if (language === 'en') {
-      setText(sourceText);
-      setTranslatedLabels({});
-      setTranslationError('');
-      return () => { isCurrent = false; };
-    }
-
-    const textKeys = Object.keys(sourceText);
-    const dynamicLabels = [...new Set(drawings.flatMap((drawing) => [...getDrawingCategories(drawing), drawing.medium]))];
-    translateTexts([...Object.values(sourceText), ...dynamicLabels], language)
-      .then((translatedValues) => {
-        if (!Array.isArray(translatedValues) || translatedValues.length !== textKeys.length + dynamicLabels.length) {
-          throw new Error('The translation service returned an invalid response.');
-        }
-        if (!isCurrent) return;
-        setText(Object.fromEntries(textKeys.map((key, index) => [key, translatedValues[index] || sourceText[key]])));
-        setTranslatedLabels(Object.fromEntries(dynamicLabels.map((label, index) => [label, translatedValues[textKeys.length + index] || label])));
-        setTranslationError('');
-      })
-      .catch((error) => {
-        if (!isCurrent) return;
-        setText(sourceText);
-        setTranslatedLabels({});
-        setTranslationError('Translation unavailable. Check LIBRETRANSLATE_URL and any required LIBRETRANSLATE_API_KEY. Showing English.');
-        console.error('Error translating gallery text:', error);
-      });
-
-    return () => { isCurrent = false; };
-  }, [language, drawings]);
-
-  const getCategoryLabel = (category) => language === 'zh'
-    ? category === 'All' ? text.all : translatedLabels[category] || category
-    : category;
-  const getErrorMessage = (message, fallback) => language === 'zh'
-    ? text[errorTextKeys[message]] || fallback
-    : message || fallback;
-  const getLocalizedLabel = (label) => language === 'zh' ? translatedLabels[label] || label : label;
+  const getCategoryLabel = (category) => t(`sections.${category}`, { defaultValue: category });
+  const getErrorMessage = (message, fallback) => {
+    const errorKey = errorTextKeys[message];
+    return errorKey ? t(errorKey) : message || fallback;
+  };
+  const getLocalizedLabel = (label) => t(`media.${label}`, { defaultValue: label });
 
   const categories = ['All', ...new Set(drawings.flatMap(getDrawingCategories))];
   const ages = [...new Set(drawings.map((drawing) => Number(drawing.age)))].filter(Number.isFinite).sort((a, b) => a - b);
@@ -477,7 +343,7 @@ export default function MuseumGallery() {
           type="button"
           className={language === 'en' ? 'language-switch__button language-switch__button--active' : 'language-switch__button'}
           aria-pressed={language === 'en'}
-          onClick={() => setLanguage('en')}
+          onClick={() => i18n.changeLanguage('en')}
         >
           {text.english}
         </button>
@@ -485,15 +351,11 @@ export default function MuseumGallery() {
           type="button"
           className={language === 'zh' ? 'language-switch__button language-switch__button--active' : 'language-switch__button'}
           aria-pressed={language === 'zh'}
-          onClick={() => setLanguage('zh')}
+          onClick={() => i18n.changeLanguage('zh')}
         >
           {text.chinese}
         </button>
       </div>
-      {translationError && language === 'zh' && (
-        <p className="translation-error" role="status">{translationError}</p>
-      )}
-
       {/* Museum Header */}
       <header className="gallery-heading text-center max-w-2xl mx-auto mb-12 border-b border-[#D6B66A] pb-6">
         <h1 className="text-4xl tracking-wide uppercase font-light text-[#24443B]">{text.exhibitionTitle}</h1>

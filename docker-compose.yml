@@ -40,8 +40,6 @@ services:
       ARTWORK_AUTHOR: ${ARTWORK_AUTHOR:-}
       WATERMARK_OPACITY: ${WATERMARK_OPACITY:-0.28}
       WATERMARK_FONT_SIZE: ${WATERMARK_FONT_SIZE:-16px}
-      LIBRETRANSLATE_URL: ${LIBRETRANSLATE_URL:-https://libretranslate.com/translate}
-      LIBRETRANSLATE_API_KEY: ${LIBRETRANSLATE_API_KEY:-}
     healthcheck:
       test:
         - CMD

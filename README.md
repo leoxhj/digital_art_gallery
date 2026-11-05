@@ -16,7 +16,7 @@ A small family art gallery for browsing, filtering, and uploading artwork. Artwo
 
 ## Tech Stack
 
-- **Frontend:** React 19, Vite 8, Tailwind CSS 4
+- **Frontend:** React 19, Vite 8, Tailwind CSS 4, i18next, react-i18next
 - **Backend:** Node.js, Express 5
 - **Database:** PostgreSQL, accessed with `pg`
 - **Uploads:** Multer multipart form handling; image data is stored in PostgreSQL `BYTEA` columns.
@@ -52,7 +52,7 @@ A small family art gallery for browsing, filtering, and uploading artwork. Artwo
 
 	Configure the `PG*` variables described below. Alternatively, set `DATABASE_URL` to a complete PostgreSQL connection string. When `DATABASE_URL` is set, it takes precedence over the separate `PG*` settings.
 
-4. Configure `LIBRETRANSLATE_URL` with your LibreTranslate `/translate` endpoint. Set `LIBRETRANSLATE_API_KEY` in `.env` if that server requires one. Translation requests are proxied by the API, so the key is never sent to the browser.
+4. English and Simplified Chinese translations are bundled locally with i18next; no external translation service or credentials are required. Add or edit locale strings in `src/locales/en.json` and `src/locales/zh.json`.
 
 5. Keep `.env` private. It is ignored by Git; do not commit database or translation credentials.
 
@@ -71,8 +71,6 @@ A small family art gallery for browsing, filtering, and uploading artwork. Artwo
 | `ARTWORK_AUTHOR` | No | None | Author name shown in the copyright watermark on gallery, detail, and original-size image views. |
 | `WATERMARK_OPACITY` | No | `0.28` | Watermark opacity from `0` (hidden) to `1` (fully opaque). Adjust and restart the API to change visibility. |
 | `WATERMARK_FONT_SIZE` | No | `16px` | Watermark font size in pixels; accepts `12px` or a bare number and is clamped to 6–64px. Restart the API after changing it. |
-| `LIBRETRANSLATE_URL` | No | `https://libretranslate.com/translate` | LibreTranslate `/translate` endpoint used for runtime English-to-Chinese translation. A self-hosted endpoint is also supported. |
-| `LIBRETRANSLATE_API_KEY` | Depends on provider | None | Optional API key for the configured LibreTranslate server. Keep it in `.env`; never expose it in frontend code. |
 
 Example `.env` using separate settings:
 
@@ -87,8 +85,6 @@ AUTHOR_BIRTHDAY=2017-09-04
 ARTWORK_AUTHOR=Rachel Xu
 WATERMARK_OPACITY=0.28
 WATERMARK_FONT_SIZE=16px
-LIBRETRANSLATE_URL=https://libretranslate.com/translate
-# LIBRETRANSLATE_API_KEY=your_translation_api_key
 ```
 
 ## Development
@@ -141,13 +137,12 @@ Vite writes the frontend output to `dist/`. `npm start` runs the Express API and
 | `GET` | `/api/drawings` | Return drawings, newest first. Each result includes an `imageUrl`. |
 | `GET` | `/api/drawings/:id/image` | Return the stored image bytes with the original MIME type. |
 | `GET` | `/api/drawings/:id/download` | Download a full-resolution copy with the configured copyright watermark. The stored original is unchanged. |
-| `POST` | `/api/translate` | Translate UI strings and category/medium labels through LibreTranslate. |
 | `POST` | `/api/drawings` | Upload up to five images with shared metadata as `multipart/form-data`; creates one drawing per image atomically. |
 | `DELETE` | `/api/drawings/:id` | Permanently delete a drawing and its stored image bytes. |
 
 The upload form field names are `images` (multiple files), `title`, `age`, `medium`, `category` (section names separated by `|`), optional `description`, and optional `date` (`YYYY-MM-DD`). The API also accepts the legacy single-file field `image`. Up to five JPG, PNG, WebP, or GIF files can be uploaded at once; each must be no larger than 20 MB. Each image creates a drawing with the same submitted metadata. The backend validates file types and sizes, required metadata, and age range (0–120). On startup, the API adds the `categories` and `description` columns to existing `drawings` tables and backfills each existing drawing's section list from its `category` value.
 
-When Chinese is selected, the application dynamically translates its English UI strings and artwork category/medium labels. Only those strings and labels are sent to the configured translation provider; artwork titles, descriptions, and images are not sent. LibreTranslate results are cached in memory by the API process.
+The interface uses bundled i18next resources for English and Simplified Chinese. Built-in section and medium names have locale entries; user-defined names fall back to their original text. No artwork content or UI strings are sent to a translation provider.
 
 ## Project Layout
 
@@ -157,6 +152,8 @@ When Chinese is selected, the application dynamically translates its English UI 
 ├── server.js              # Express API, PostgreSQL schema, database-backed image uploads
 ├── src/
 │   ├── main.jsx           # React browser entry point
+│   ├── i18n.js            # i18next initialization
+│   ├── locales/           # English and Simplified Chinese resources
 │   └── styles.css         # Tailwind import and gallery/upload styles
 ├── public/                # Static frontend assets; gallery records are stored in PostgreSQL
 ├── index.html             # Vite HTML entry point
