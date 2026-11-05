@@ -122,7 +122,7 @@ This log records the visible user requests in chronological order and the corres
 
 Yesterday's Chat History (2026-11-02 UTC)
 -----------------------------------------
-The following locally indexed turns are ordered by their stored timestamp. Assistant responses are reproduced as available in the history store; some are truncated there.
+This section contains all 17 locally indexed turns across both gallery sessions from November 2, ordered by stored timestamp. Assistant responses are reproduced as available in the history store; some are truncated there, and three turns have no stored assistant response.
 
 08:10:38.285Z
 User: "run in browser"
