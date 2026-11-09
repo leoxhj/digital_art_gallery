@@ -23,8 +23,9 @@ services:
       dockerfile: Dockerfile
     image: digital-art-gallery:latest
     restart: unless-stopped
-    expose:
-      - "5001"
+    ports:
+      - "8080:5001"
+      - "5001:5001"
     depends_on:
       db:
         condition: service_healthy
@@ -50,24 +51,5 @@ services:
       retries: 5
       start_period: 30s
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:-localhost}
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      gallery:
-        condition: service_healthy
-
 volumes:
   gallery_data:
-  caddy_data:
-  caddy_config:

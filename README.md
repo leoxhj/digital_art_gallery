@@ -19,7 +19,6 @@ A small family art gallery for browsing, filtering, and uploading artwork. Artwo
 - **Frontend:** React 19, Vite 8, Tailwind CSS 4, i18next, react-i18next
 - **Backend:** Node.js, Express 5
 - **Database:** PostgreSQL, accessed with `pg`
-- **HTTPS:** Caddy reverse proxy with automatic TLS certificates
 - **Uploads:** Multer multipart form handling; image data is stored in PostgreSQL `BYTEA` columns.
 - **Configuration:** `dotenv` loads local environment settings from `.env`.
 
@@ -68,7 +67,6 @@ A small family art gallery for browsing, filtering, and uploading artwork. Artwo
 | `PGPASSWORD` | Yes, unless using `DATABASE_URL` | None | PostgreSQL password. |
 | `DATABASE_URL` | No | None | Optional full connection string, for example `postgresql://user:password@localhost:5432/digital_art_gallery`. Takes precedence over `PG*` values. |
 | `PORT` | No | `5001` | Port used by the Express API. The Vite proxy target is configured for port `5001`; update `vite.config.mjs` if you change this during development. |
-| `DOMAIN` | No | `localhost` | Hostname served over HTTPS by Caddy. Use a public DNS name for browser-trusted automatic certificates, or `localhost` for local development. |
 | `AUTHOR_BIRTHDAY` | No | `2017-09-04` | Author's birthday in `YYYY-MM-DD`; changing it and restarting the API recalculates stored artwork ages from creation dates. |
 | `ARTWORK_AUTHOR` | No | None | Author name shown in the copyright watermark on gallery, detail, and original-size image views. |
 | `WATERMARK_OPACITY` | No | `0.28` | Watermark opacity from `0` (hidden) to `1` (fully opaque). Adjust and restart the API to change visibility. |
@@ -83,7 +81,6 @@ PGPORT=5432
 PGUSER=postgres
 PGPASSWORD=your_password
 PORT=5001
-DOMAIN=localhost
 AUTHOR_BIRTHDAY=2017-09-04
 ARTWORK_AUTHOR=Rachel Xu
 WATERMARK_OPACITY=0.28
@@ -108,9 +105,9 @@ npm run dev
 
 Open the local URL printed by Vite, usually `http://localhost:5173`. Vite proxies `/api` requests to `http://localhost:5001`.
 
-## Docker and HTTPS
+## Docker
 
-Docker Compose runs three Linux containers: Caddy terminates HTTPS, the Node container serves the production-built frontend and Express API, and PostgreSQL 18 stores artwork. Database and certificate state persist in named volumes.
+Docker Compose runs two Linux containers: the Node container serves the production-built frontend and Express API over HTTP, and PostgreSQL 18 stores artwork in a persistent named volume. This setup does not terminate TLS.
 
 1. Copy `.env.example` to `.env` and set `PGPASSWORD` to a non-placeholder value. Configure `ARTWORK_AUTHOR` and other settings as needed.
 2. Build and start the container:
@@ -119,11 +116,11 @@ Docker Compose runs three Linux containers: Caddy terminates HTTPS, the Node con
 	docker compose up --build -d
 	```
 
-3. Set `DOMAIN` to a public hostname whose DNS points to this server and allow inbound ports 80 and 443 for browser-trusted automatic certificates. Start with `docker compose up --build -d`, then open `https://<DOMAIN>`; the API is available on the same HTTPS origin. Follow logs with `docker compose logs -f caddy gallery db`.
-
-For local use, leave `DOMAIN=localhost` and open `https://localhost`. Caddy issues a local certificate, which browsers may warn about until its root CA is trusted. Export the local root certificate with `docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt`, then trust that certificate on your development machine. Do not use the local CA setup for a public website.
+3. Open the frontend over HTTP at `http://localhost:8080`; the API is also available at `http://localhost:5001`. Follow logs with `docker compose logs -f gallery db`.
 
 Stop both containers with `docker compose down`; the database volume remains. To also erase the database, run `docker compose down -v`.
+
+For public deployment, place the application behind an HTTPS-terminating reverse proxy provided by your hosting platform or network.
 
 ## Build
 
