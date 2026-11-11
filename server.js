@@ -1,7 +1,7 @@
 require('dotenv').config();
 
-const cors = require('cors');
 const express = require('express');
+const { initializeAuth, installAuth } = require('./auth');
 const multer = require('multer');
 const path = require('node:path');
 const { Pool } = require('pg');
@@ -22,6 +22,8 @@ const watermarkFontSizeMatch = /^(\d+(?:\.\d+)?)\s*(?:px)?$/i.exec(process.env.W
 const configuredWatermarkFontSize = watermarkFontSizeMatch ? Number(watermarkFontSizeMatch[1]) : 16;
 const WATERMARK_FONT_SIZE = `${Math.min(64, Math.max(6, configuredWatermarkFontSize))}px`;
 const WATERMARK_FONT_SIZE_PX = Number.parseFloat(WATERMARK_FONT_SIZE);
+const AUTH_SECRET = process.env.AUTH_SECRET?.trim() || '';
+const AUTH_SESSION_TTL_SECONDS = Math.max(300, Number.parseInt(process.env.AUTH_SESSION_TTL_SECONDS || '43200', 10) || 43200);
 if (calculateAgeAtDate(AUTHOR_BIRTHDAY, AUTHOR_BIRTHDAY) !== 0) {
   throw new Error('AUTHOR_BIRTHDAY must be a valid date in YYYY-MM-DD format.');
 }
@@ -48,8 +50,13 @@ const upload = multer({
   },
 });
 
-app.use(cors());
 app.use(express.json());
+const { requirePermission } = installAuth(app, pool, {
+  secret: AUTH_SECRET,
+  setupToken: process.env.AUTH_SETUP_TOKEN || AUTH_SECRET,
+  ttl: AUTH_SESSION_TTL_SECONDS,
+  secure: process.env.AUTH_COOKIE_SECURE === undefined ? process.env.NODE_ENV === 'production' : process.env.AUTH_COOKIE_SECURE === 'true',
+});
 
 app.get('/api/config', (request, response) => {
   response.json({
@@ -224,7 +231,7 @@ app.get('/api/drawings/:id/download', async (request, response, next) => {
   }
 });
 
-app.put('/api/drawings/:id', upload.single('image'), async (request, response, next) => {
+app.put('/api/drawings/:id', requirePermission('artwork:write'), upload.single('image'), async (request, response, next) => {
   if (!/^\d+$/.test(request.params.id) || Number(request.params.id) < 1) {
     response.status(400).json({ error: 'Drawing ID must be a positive integer.' });
     return;
@@ -272,7 +279,7 @@ app.put('/api/drawings/:id', upload.single('image'), async (request, response, n
   }
 });
 
-app.delete('/api/drawings/:id', async (request, response, next) => {
+app.delete('/api/drawings/:id', requirePermission('artwork:delete'), async (request, response, next) => {
   if (!/^\d+$/.test(request.params.id) || Number(request.params.id) < 1) {
     response.status(400).json({ error: 'Drawing ID must be a positive integer.' });
     return;
@@ -290,7 +297,7 @@ app.delete('/api/drawings/:id', async (request, response, next) => {
   }
 });
 
-app.post('/api/drawings', upload.fields([
+app.post('/api/drawings', requirePermission('artwork:write'), upload.fields([
   { name: 'images', maxCount: MAX_ARTWORK_FILES },
   { name: 'image', maxCount: 1 },
 ]), async (request, response, next) => {
@@ -375,6 +382,10 @@ async function startServer() {
   if (!process.env.DATABASE_URL && missingDatabaseSettings.length > 0) {
     throw new Error(`Set DATABASE_URL or provide PostgreSQL settings: ${missingDatabaseSettings.join(', ')}. See .env.example.`);
   }
+  if (AUTH_SECRET.length < 32) {
+    throw new Error('Set AUTH_SECRET to a random secret of at least 32 characters.');
+  }
+  await initializeAuth(pool);
   await initializeDatabase();
   await recalculateArtworkAges();
   app.listen(PORT, () => {

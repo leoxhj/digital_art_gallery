@@ -40,6 +40,10 @@ services:
       ARTWORK_AUTHOR: ${ARTWORK_AUTHOR:-}
       WATERMARK_OPACITY: ${WATERMARK_OPACITY:-0.28}
       WATERMARK_FONT_SIZE: ${WATERMARK_FONT_SIZE:-16px}
+      AUTH_SECRET: "${AUTH_SECRET:?Set AUTH_SECRET to a random secret of at least 32 characters}"
+      AUTH_SETUP_TOKEN: "${AUTH_SETUP_TOKEN:-${AUTH_SECRET}}"
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-43200}
+      AUTH_COOKIE_SECURE: "${AUTH_COOKIE_SECURE:-false}"
     healthcheck:
       test:
         - CMD

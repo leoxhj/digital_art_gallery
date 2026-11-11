@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { calculateAgeAtDate } from './src/age_calculation.mjs';
+import UserManagement from './src/UserManagement.jsx';
 
 const errorTextKeys = {
   'Choose an image to upload.': 'chooseImageError',
@@ -12,6 +13,10 @@ const errorTextKeys = {
   'Artwork was not found.': 'notFoundError',
   'The gallery could not complete that request.': 'requestError',
   'Choose no more than 5 images.': 'tooManyImagesError',
+  'Authentication required.': 'authRequiredAction',
+  'Authentication is not configured.': 'authUnavailable',
+  'Invalid username or password.': 'authInvalidCredentials',
+  'Permission denied.': 'permissionDenied',
 };
 
 function getDrawingCategories(drawing) {
@@ -80,6 +85,20 @@ export default function MuseumGallery() {
   const [isLoadingDrawings, setIsLoadingDrawings] = useState(true);
   const [drawingsError, setDrawingsError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const [authConfigured, setAuthConfigured] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authUser, setAuthUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isLoginPanelOpen, setIsLoginPanelOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [setupRequired, setSetupRequired] = useState(false);
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+  const canManageArtworks = authConfigured && Boolean(authUser?.permissions?.includes('artwork:write'));
+  const canDeleteArtworks = authConfigured && Boolean(authUser?.permissions?.includes('artwork:delete'));
+  const canManageUsers = authConfigured && Boolean(authUser?.permissions?.includes('users:manage'));
 
   useEffect(() => {
     if (!isOriginalImageOpen) return undefined;
@@ -111,6 +130,57 @@ export default function MuseumGallery() {
 
     return () => { isCurrent = false; };
   }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadSession() {
+      setIsAuthLoading(true);
+      setAuthError('');
+      try {
+        const response = await fetch('/api/auth/session');
+        const result = await response.json();
+        if (!isCurrent) return;
+
+        if (!response.ok) {
+          setAuthConfigured(false);
+          setIsAuthenticated(false);
+          setAuthUser(null);
+          setAuthError(result.error || text.authUnavailable);
+          return;
+        }
+
+        setAuthConfigured(Boolean(result.configured));
+        setIsAuthenticated(Boolean(result.authenticated));
+        setAuthUser(result.user || null);
+        setSetupRequired(Boolean(result.setupRequired));
+        if (result.setupRequired) setIsLoginPanelOpen(true);
+      } catch (error) {
+        if (isCurrent) {
+          setAuthConfigured(false);
+          setIsAuthenticated(false);
+          setAuthUser(null);
+          setAuthError(text.authUnavailable);
+        }
+      } finally {
+        if (isCurrent) setIsAuthLoading(false);
+      }
+    }
+
+    loadSession();
+    return () => { isCurrent = false; };
+  }, [text.authUnavailable]);
+
+  useEffect(() => {
+    if (!canDeleteArtworks) {
+      setIsSelectionMode(false);
+      setSelectedArtworkIds(new Set());
+      setIsDeleteConfirmationOpen(false);
+      setDeleteTargetIds([]);
+    }
+    if (!canManageArtworks) { setIsEditing(false); setIsUploadPanelOpen(false); }
+    if (!canManageUsers) setIsUserManagementOpen(false);
+  }, [canDeleteArtworks, canManageArtworks, canManageUsers]);
 
   useEffect(() => {
     if (!uploadDate || !authorBirthday) return;
@@ -167,6 +237,27 @@ export default function MuseumGallery() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isUploadPanelOpen, isUploading]);
+
+  useEffect(() => {
+    if (!isLoginPanelOpen || isAuthenticating) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsLoginPanelOpen(false);
+        setAuthError('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLoginPanelOpen, isAuthenticating]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthMessage(text.authLoggedInAs.replace('{{username}}', authUser?.username || 'admin'));
+      return;
+    }
+    setAuthMessage('');
+  }, [authUser?.username, isAuthenticated, text.authLoggedInAs]);
 
   useEffect(() => {
     window.localStorage.setItem('gallery-language', language);
@@ -227,6 +318,11 @@ export default function MuseumGallery() {
 
   const handleUpload = async (event) => {
     event.preventDefault();
+    if (!canManageArtworks) {
+      setUploadError(text.authRequiredAction);
+      setIsLoginPanelOpen(true);
+      return;
+    }
     const form = event.currentTarget;
     const formData = new FormData(form);
     setIsUploading(true);
@@ -234,7 +330,8 @@ export default function MuseumGallery() {
     setUploadError('');
 
     try {
-      const response = await fetch('/api/drawings', { method: 'POST', body: formData });
+      const response = await fetch('/api/drawings', { method: 'POST', headers: { 'X-Gallery-Request': '1' }, body: formData });
+      if (response.status === 401 || response.status === 403) await refreshSession();
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'The artwork could not be uploaded.');
 
@@ -254,6 +351,11 @@ export default function MuseumGallery() {
 
   const handleDelete = async () => {
     if (deleteTargetIds.length === 0 || isDeleting) return;
+    if (!canDeleteArtworks) {
+      setDeleteError(text.authRequiredAction);
+      setIsLoginPanelOpen(true);
+      return;
+    }
 
     setIsDeleting(true);
     setDeleteError('');
@@ -262,7 +364,8 @@ export default function MuseumGallery() {
     let firstError = '';
     for (const id of deleteTargetIds) {
       try {
-        const response = await fetch(`/api/drawings/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/drawings/${id}`, { method: 'DELETE', headers: { 'X-Gallery-Request': '1' } });
+        if (response.status === 401 || response.status === 403) await refreshSession();
         if (response.ok || response.status === 404) {
           deletedIds.push(String(id));
         } else {
@@ -314,6 +417,11 @@ export default function MuseumGallery() {
   const handleEdit = async (event) => {
     event.preventDefault();
     if (!selectedArt || isSavingEdit) return;
+    if (!canManageArtworks) {
+      setEditError(text.authRequiredAction);
+      setIsLoginPanelOpen(true);
+      return;
+    }
 
     const formData = new FormData(event.currentTarget);
     setIsSavingEdit(true);
@@ -321,8 +429,10 @@ export default function MuseumGallery() {
     try {
       const response = await fetch(`/api/drawings/${selectedArt.id}`, {
         method: 'PUT',
+        headers: { 'X-Gallery-Request': '1' },
         body: formData,
       });
+      if (response.status === 401 || response.status === 403) await refreshSession();
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'The artwork could not be updated.');
 
@@ -335,6 +445,76 @@ export default function MuseumGallery() {
       setIsSavingEdit(false);
     }
   };
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    if (isAuthenticating) return;
+
+    const formData = new FormData(event.currentTarget);
+    const username = String(formData.get('username') || '').trim();
+    const password = String(formData.get('password') || '');
+    if (setupRequired && password !== formData.get('confirmPassword')) {
+      setAuthError(text.passwordMismatch);
+      return;
+    }
+
+    setIsAuthenticating(true);
+    setAuthError('');
+    setAuthMessage('');
+    try {
+      const response = await fetch(setupRequired ? '/api/auth/setup' : '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Gallery-Request': '1' },
+        body: JSON.stringify({ username, password, ...(setupRequired ? { setupToken: formData.get('setupToken') } : {}) }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || text.authLoginFailed);
+
+      setIsAuthenticated(true);
+      setAuthUser(result.user);
+      setSetupRequired(false);
+      setIsLoginPanelOpen(false);
+      setAuthMessage(text.authLoginSuccess);
+    } catch (error) {
+      setAuthError(t(`authErrors.${error.message}`, { defaultValue: getErrorMessage(error.message, text.authLoginFailed) }));
+      await refreshSession();
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setAuthError('');
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST', headers: { 'X-Gallery-Request': '1' } });
+      if (!response.ok) throw new Error(text.authLogoutFailed);
+      setIsAuthenticated(false);
+      setAuthUser(null);
+      setIsUploadPanelOpen(false);
+      setIsEditing(false);
+      setAuthMessage(text.authLogoutSuccess);
+    } catch {
+      setAuthError(text.authLogoutFailed);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  async function refreshSession() {
+    try {
+      const response = await fetch('/api/auth/session');
+      if (!response.ok) throw new Error('Session unavailable');
+      const result = await response.json();
+      setIsAuthenticated(Boolean(result.authenticated));
+      setAuthUser(result.user || null);
+      setSetupRequired(Boolean(result.setupRequired));
+    } catch {
+      setIsAuthenticated(false);
+      setAuthUser(null);
+    }
+  }
 
   return (
     <div className="gallery-canvas min-h-screen text-[#263B38] font-serif p-8">
@@ -362,7 +542,92 @@ export default function MuseumGallery() {
         <p className="text-sm text-[#697D72] italic mt-2">{text.exhibitionSubtitle}</p>
       </header>
 
-      {isUploadPanelOpen && (
+      <section className="auth-panel" aria-live="polite">
+        <div>
+          <h2>{text.authHeading}</h2>
+          <p>
+            {isAuthLoading
+              ? text.authChecking
+              : authConfigured
+                ? (isAuthenticated
+                  ? t('signedInRole', { username: authUser?.username, role: t(`roles.${authUser?.role}`) })
+                  : text.authNotLoggedIn)
+                : text.authUnavailable}
+          </p>
+        </div>
+        <div className="auth-panel__actions">
+          {!isAuthenticated && authConfigured && (
+            <button type="button" className="auth-panel__button" onClick={() => setIsLoginPanelOpen(true)}>
+              {setupRequired ? text.setupAdmin : text.login}
+            </button>
+          )}
+          {canManageUsers && <button type="button" className="auth-panel__button" onClick={() => setIsUserManagementOpen((current) => !current)} aria-expanded={isUserManagementOpen}>{text.manageUsers}</button>}
+          {isAuthenticated && (
+            <button type="button" className="auth-panel__button auth-panel__button--danger" onClick={handleLogout} disabled={isLoggingOut}>
+              {isLoggingOut ? text.loggingOut : text.logout}
+            </button>
+          )}
+        </div>
+        {(authError || authMessage) && (
+          <p className={authError ? 'auth-panel__status auth-panel__status--error' : 'auth-panel__status'}>
+            {authError || authMessage}
+          </p>
+        )}
+      </section>
+
+      {isUserManagementOpen && canManageUsers && <UserManagement onClose={() => setIsUserManagementOpen(false)} onSessionChange={refreshSession} />}
+
+      {isLoginPanelOpen && (
+        <div className="upload-dialog-backdrop" onClick={() => setIsLoginPanelOpen(false)}>
+          <section
+            className="upload-panel upload-dialog auth-login-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-heading"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="upload-panel__heading">
+              <div>
+                <p className="upload-eyebrow">{text.authEyebrow}</p>
+                <h2 id="login-heading">{setupRequired ? text.setupAdmin : text.authLoginHeading}</h2>
+              </div>
+              <button
+                className="upload-panel__close"
+                type="button"
+                onClick={() => setIsLoginPanelOpen(false)}
+                aria-label={text.closeLogin}
+                title={text.closeLogin}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+            <form className="upload-form auth-login-form" onSubmit={handleLogin}>
+              <label className="upload-field">
+                <span>{text.username}</span>
+                <input name="username" type="text" autoComplete="username" minLength={3} maxLength={64} pattern="[a-zA-Z0-9_.\-]{3,64}" required />
+              </label>
+              <label className="upload-field">
+                <span>{text.password}</span>
+                <input name="password" type="password" autoComplete={setupRequired ? 'new-password' : 'current-password'} minLength={setupRequired ? 12 : undefined} maxLength={128} required />
+              </label>
+              {setupRequired && <>
+                <label className="upload-field"><span>{text.confirmPassword}</span><input name="confirmPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label>
+                <label className="upload-field"><span>{text.setupToken}</span><input name="setupToken" type="password" autoComplete="off" required /></label>
+              </>}
+              <div className="upload-actions">
+                <button type="submit" disabled={isAuthenticating}>
+                  {isAuthenticating ? text.loggingIn : setupRequired ? text.setupAdmin : text.login}
+                </button>
+                <p aria-live="polite" className={authError ? 'upload-status upload-status--error' : 'upload-status'}>
+                  {authError}
+                </p>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {isUploadPanelOpen && canManageArtworks && (
       <div className="upload-dialog-backdrop" onClick={() => setIsUploadPanelOpen(false)}>
       <section
         className="upload-panel upload-dialog"
@@ -449,16 +714,18 @@ export default function MuseumGallery() {
       </div>
       )}
 
-      <button
-        className="upload-launcher"
-        type="button"
-        onClick={() => setIsUploadPanelOpen(true)}
-        aria-expanded={isUploadPanelOpen}
-        aria-controls="upload-heading"
-      >
-        <span className="upload-launcher__icon" aria-hidden="true">+</span>
-        <span>{text.addArtwork}</span>
-      </button>
+      {canManageArtworks && (
+        <button
+          className="upload-launcher"
+          type="button"
+          onClick={() => setIsUploadPanelOpen(true)}
+          aria-expanded={isUploadPanelOpen}
+          aria-controls="upload-heading"
+        >
+          <span className="upload-launcher__icon" aria-hidden="true">+</span>
+          <span>{text.addArtwork}</span>
+        </button>
+      )}
 
       <section className="gallery-controls-panel" aria-label={text.searchArtwork}>
         <div className="gallery-search-bar">
@@ -521,37 +788,41 @@ export default function MuseumGallery() {
             <option value="age-descending">{text.ageHighToLow}</option>
           </select>
         </label>
-        <button
-          type="button"
-          className={isSelectionMode ? 'gallery-selection-toggle gallery-selection-toggle--active' : 'gallery-selection-toggle'}
-          aria-pressed={isSelectionMode}
-          onClick={() => {
-            setIsSelectionMode((current) => !current);
-            if (isSelectionMode) setSelectedArtworkIds(new Set());
-          }}
-        >
-          {isSelectionMode ? text.doneSelecting : text.selectArtwork}
-        </button>
-        {isSelectionMode && (
+        {canDeleteArtworks && (
           <>
-            <button type="button" className="gallery-selection-action" onClick={toggleVisibleSelection} disabled={visibleArtworkIds.length === 0}>
-              {allVisibleSelected ? text.deselectVisible : text.selectVisible}
-            </button>
-            <span className="gallery-selection-count">
-              {formatText(text.selectedCount, { count: selectedArtworkIds.size })}
-            </span>
             <button
               type="button"
-              className="gallery-selection-delete"
-              disabled={selectedArtworkIds.size === 0}
+              className={isSelectionMode ? 'gallery-selection-toggle gallery-selection-toggle--active' : 'gallery-selection-toggle'}
+              aria-pressed={isSelectionMode}
               onClick={() => {
-                setDeleteTargetIds([...selectedArtworkIds]);
-                setDeleteError('');
-                setIsDeleteConfirmationOpen(true);
+                setIsSelectionMode((current) => !current);
+                if (isSelectionMode) setSelectedArtworkIds(new Set());
               }}
             >
-              {text.deleteSelected}
+              {isSelectionMode ? text.doneSelecting : text.selectArtwork}
             </button>
+            {isSelectionMode && canDeleteArtworks && (
+              <>
+                <button type="button" className="gallery-selection-action" onClick={toggleVisibleSelection} disabled={visibleArtworkIds.length === 0}>
+                  {allVisibleSelected ? text.deselectVisible : text.selectVisible}
+                </button>
+                <span className="gallery-selection-count">
+                  {formatText(text.selectedCount, { count: selectedArtworkIds.size })}
+                </span>
+                <button
+                  type="button"
+                  className="gallery-selection-delete"
+                  disabled={selectedArtworkIds.size === 0}
+                  onClick={() => {
+                    setDeleteTargetIds([...selectedArtworkIds]);
+                    setDeleteError('');
+                    setIsDeleteConfirmationOpen(true);
+                  }}
+                >
+                  {text.deleteSelected}
+                </button>
+              </>
+            )}
           </>
         )}
         </div>
@@ -668,7 +939,7 @@ export default function MuseumGallery() {
 
             {/* Official Museum Descriptive Label */}
             <div className="w-full md:w-72 flex flex-col justify-between border-l border-gray-200 pl-0 md:pl-8 pt-4 md:pt-0">
-              {isEditing ? (
+              {isEditing && canManageArtworks ? (
                 <form className="edit-artwork-form" onSubmit={handleEdit}>
                   <label className="upload-field">
                     <span>{text.title}</span>
@@ -731,26 +1002,30 @@ export default function MuseumGallery() {
               <div className="mt-8 pt-4 border-t border-dashed border-gray-300 text-xs italic text-gray-400 font-sans">
                 {formatText(text.collectionId, { id: selectedArt.id })}
               </div>
-              <button
-                type="button"
-                className="modify-artwork-button"
-                onClick={() => { setIsEditing(true); setEditError(''); }}
-                disabled={isDeleting}
-              >
-                {text.edit}
-              </button>
-              <button
-                type="button"
-                className="delete-artwork-button"
-                onClick={() => {
-                  setDeleteTargetIds([String(selectedArt.id)]);
-                  setDeleteError('');
-                  setIsDeleteConfirmationOpen(true);
-                }}
-                disabled={isDeleting}
-              >
-                {text.delete}
-              </button>
+              {canManageArtworks && (
+                <>
+                  <button
+                    type="button"
+                    className="modify-artwork-button"
+                    onClick={() => { setIsEditing(true); setEditError(''); }}
+                    disabled={isDeleting}
+                  >
+                    {text.edit}
+                  </button>
+                  {canDeleteArtworks && <button
+                    type="button"
+                    className="delete-artwork-button"
+                    onClick={() => {
+                      setDeleteTargetIds([String(selectedArt.id)]);
+                      setDeleteError('');
+                      setIsDeleteConfirmationOpen(true);
+                    }}
+                    disabled={isDeleting}
+                  >
+                    {text.delete}
+                  </button>}
+                </>
+              )}
               </>}
             </div>
           </div>
@@ -789,7 +1064,7 @@ export default function MuseumGallery() {
               </a>
             </div>
           )}
-          {isDeleteConfirmationOpen && (
+          {isDeleteConfirmationOpen && canDeleteArtworks && (
             <div
               className="delete-confirmation-backdrop"
               onClick={(event) => {
