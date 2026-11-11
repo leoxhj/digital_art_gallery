@@ -898,17 +898,22 @@ export default function MuseumGallery() {
         >
           {/* Spotlight Effect Container */}
           <div
-            className="bg-[#FBF9F4] p-8 md:p-12 max-w-4xl w-full flex flex-col md:flex-row gap-8 shadow-2xl relative border-t-4 border-amber-700 animate-fade-in"
+            className="artwork-detail-panel bg-[#FBF9F4] max-w-4xl w-full shadow-2xl relative border-t-4 border-amber-700 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedArt(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 text-xl font-sans"
-            >
-              ✕
-            </button>
+            <div className="artwork-detail-header">
+              <button
+                type="button"
+                onClick={() => setSelectedArt(null)}
+                className="artwork-detail-close"
+                aria-label={text.closeArtworkDetails}
+                title={text.closeArtworkDetails}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
 
+            <div className="artwork-detail-body flex flex-col md:flex-row gap-8 p-6 md:p-12">
             <div className="artwork-visual-column">
               {/* Framed Image */}
               <div className="gallery-picture-frame artwork-image-frame">
@@ -1027,6 +1032,7 @@ export default function MuseumGallery() {
                 </>
               )}
               </>}
+            </div>
             </div>
           </div>
           {isOriginalImageOpen && (
