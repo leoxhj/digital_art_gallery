@@ -2,6 +2,8 @@
 
 A small family art gallery for browsing, filtering, and uploading artwork. Artwork metadata and image bytes are stored in PostgreSQL so uploaded pieces remain available after the server restarts.
 
+<img width="1661" height="1067" alt="ScreenShot_2026-11-11_171529_814" src="https://github.com/user-attachments/assets/fee1b230-4ebd-4793-8a31-35db316977fe" />
+
 ## Features
 
 - Browse the gallery and filter works by any assigned section.
