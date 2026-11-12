@@ -518,62 +518,63 @@ export default function MuseumGallery() {
 
   return (
     <div className="gallery-canvas min-h-screen text-[#263B38] font-serif p-8">
-      <div className="language-switch" role="group" aria-label={text.language}>
-        <button
-          type="button"
-          className={language === 'en' ? 'language-switch__button language-switch__button--active' : 'language-switch__button'}
-          aria-pressed={language === 'en'}
-          onClick={() => i18n.changeLanguage('en')}
-        >
-          {text.english}
-        </button>
-        <button
-          type="button"
-          className={language === 'zh' ? 'language-switch__button language-switch__button--active' : 'language-switch__button'}
-          aria-pressed={language === 'zh'}
-          onClick={() => i18n.changeLanguage('zh')}
-        >
-          {text.chinese}
-        </button>
+      <div className="header-utilities">
+        <section className={`auth-panel${!isAuthenticated && authConfigured ? ' auth-panel--signed-out' : ''}`} aria-live="polite">
+          {(isAuthenticated || !authConfigured) && (
+            <div>
+              <h2>{text.authHeading}</h2>
+              <p>
+                {isAuthLoading
+                  ? text.authChecking
+                  : authConfigured
+                    ? t('signedInRole', { username: authUser?.username, role: t(`roles.${authUser?.role}`) })
+                    : text.authUnavailable}
+              </p>
+            </div>
+          )}
+          <div className="auth-panel__actions">
+            {!isAuthenticated && authConfigured && (
+              <button type="button" className="auth-panel__button auth-panel__button--sign-in" onClick={() => setIsLoginPanelOpen(true)}>
+                {setupRequired ? text.setupAdmin : text.login}
+              </button>
+            )}
+            {canManageUsers && <button type="button" className="auth-panel__button" onClick={() => setIsUserManagementOpen((current) => !current)} aria-expanded={isUserManagementOpen}>{text.manageUsers}</button>}
+            {isAuthenticated && (
+              <button type="button" className="auth-panel__button auth-panel__button--danger" onClick={handleLogout} disabled={isLoggingOut}>
+                {isLoggingOut ? text.loggingOut : text.logout}
+              </button>
+            )}
+          </div>
+          {(authError || authMessage) && (
+            <p className={authError ? 'auth-panel__status auth-panel__status--error' : 'auth-panel__status'}>
+              {authError || authMessage}
+            </p>
+          )}
+        </section>
+        <div className="language-switch" role="group" aria-label={text.language}>
+          <button
+            type="button"
+            className={language === 'en' ? 'language-switch__button language-switch__button--active' : 'language-switch__button'}
+            aria-pressed={language === 'en'}
+            onClick={() => i18n.changeLanguage('en')}
+          >
+            {text.english}
+          </button>
+          <button
+            type="button"
+            className={language === 'zh' ? 'language-switch__button language-switch__button--active' : 'language-switch__button'}
+            aria-pressed={language === 'zh'}
+            onClick={() => i18n.changeLanguage('zh')}
+          >
+            {text.chinese}
+          </button>
+        </div>
       </div>
       {/* Museum Header */}
       <header className="gallery-heading text-center max-w-2xl mx-auto mb-12 border-b border-[#D6B66A] pb-6">
         <h1 className="text-4xl tracking-wide uppercase font-light text-[#24443B]">{text.exhibitionTitle}</h1>
         <p className="text-sm text-[#697D72] italic mt-2">{text.exhibitionSubtitle}</p>
       </header>
-
-      <section className="auth-panel" aria-live="polite">
-        <div>
-          <h2>{text.authHeading}</h2>
-          <p>
-            {isAuthLoading
-              ? text.authChecking
-              : authConfigured
-                ? (isAuthenticated
-                  ? t('signedInRole', { username: authUser?.username, role: t(`roles.${authUser?.role}`) })
-                  : text.authNotLoggedIn)
-                : text.authUnavailable}
-          </p>
-        </div>
-        <div className="auth-panel__actions">
-          {!isAuthenticated && authConfigured && (
-            <button type="button" className="auth-panel__button" onClick={() => setIsLoginPanelOpen(true)}>
-              {setupRequired ? text.setupAdmin : text.login}
-            </button>
-          )}
-          {canManageUsers && <button type="button" className="auth-panel__button" onClick={() => setIsUserManagementOpen((current) => !current)} aria-expanded={isUserManagementOpen}>{text.manageUsers}</button>}
-          {isAuthenticated && (
-            <button type="button" className="auth-panel__button auth-panel__button--danger" onClick={handleLogout} disabled={isLoggingOut}>
-              {isLoggingOut ? text.loggingOut : text.logout}
-            </button>
-          )}
-        </div>
-        {(authError || authMessage) && (
-          <p className={authError ? 'auth-panel__status auth-panel__status--error' : 'auth-panel__status'}>
-            {authError || authMessage}
-          </p>
-        )}
-      </section>
 
       {isUserManagementOpen && canManageUsers && <UserManagement onClose={() => setIsUserManagementOpen(false)} onSessionChange={refreshSession} />}
 
@@ -601,7 +602,7 @@ export default function MuseumGallery() {
                 <span aria-hidden="true">×</span>
               </button>
             </div>
-            <form className="upload-form auth-login-form" onSubmit={handleLogin}>
+            <form className={`upload-form auth-login-form${setupRequired ? ' auth-login-form--setup' : ''}`} onSubmit={handleLogin}>
               <label className="upload-field">
                 <span>{text.username}</span>
                 <input name="username" type="text" autoComplete="username" minLength={3} maxLength={64} pattern="[a-zA-Z0-9_.\-]{3,64}" required />
