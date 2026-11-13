@@ -176,33 +176,42 @@
 .user-management {
 	max-width: 72rem;
 	margin: 0 auto 24px;
-	padding: 20px 16px;
-	background: rgba(255, 252, 244, 0.94);
-	border-block: 1px solid #c5d2c8;
-	font: 13px/1.5 Georgia, serif;
+	padding: 20px;
+	background: var(--ui-surface);
+	border: 1px solid var(--ui-border);
+	border-radius: 8px;
+	box-shadow: var(--ui-shadow);
+	font: 13px/1.5 "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
 }
-.user-management h2 { font-size: 20px; }
+.user-management .upload-panel__heading { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--ui-border); }
+.user-management h2 { color: var(--ui-text); font-size: 18px; font-weight: 600; }
 .user-create-form, .user-row {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(100px, 0.7fr) auto;
-	gap: 16px;
+	gap: 12px;
 	align-items: end;
 }
-.user-create-form { padding-bottom: 20px; }
-.user-row { padding-block: 14px; border-top: 1px solid #c5d2c8; }
-.user-row strong { align-self: center; overflow-wrap: anywhere; }
+.user-create-form { margin-bottom: 16px; padding: 14px; background: #f9fafb; border: 1px solid var(--ui-border); border-radius: 6px; }
+.user-list { display: grid; gap: 8px; }
+.user-row { padding: 12px; background: #fff; border: 1px solid var(--ui-border); border-radius: 6px; }
+.user-row strong { align-self: center; color: var(--ui-text); font-weight: 600; overflow-wrap: anywhere; }
 .user-management select {
 	width: 100%;
-	min-height: 42px;
-	padding: 9px 11px;
-	background: #fffefa;
-	border: 1px solid #c5d2c8;
-	color: #263b38;
+	min-height: 38px;
+	padding: 7px 10px;
+	background: #fff;
+	border: 1px solid var(--ui-border);
+	border-radius: 6px;
+	color: var(--ui-text);
+	font: 13px/1.3 "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
 }
-.user-active { display: flex; align-items: center; gap: 8px; min-height: 42px; }
-.user-management button { white-space: normal; min-height: 42px; line-height: 1.4; }
+.user-active { display: flex; align-items: center; gap: 8px; min-height: 38px; color: var(--ui-muted); }
+.user-active input { accent-color: var(--ui-accent); }
+.user-management button { white-space: normal; min-height: 38px; line-height: 1.4; }
+.user-management .auth-panel__button { padding: 0 12px; color: #fff; background: var(--ui-accent); border-color: var(--ui-accent); border-radius: 6px; font: 600 12px/1.2 "Segoe UI Variable", "Microsoft YaHei UI", sans-serif; letter-spacing: 0; text-transform: none; }
+.user-management .auth-panel__button:hover:not(:disabled) { background: var(--ui-accent-strong); border-color: var(--ui-accent-strong); }
 .user-management button:disabled { opacity: 0.6; cursor: wait; }
-.user-management :focus-visible { outline: 2px solid #287568; outline-offset: 3px; }
+.user-management :focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 3px; }
 .auth-panel__actions { flex-wrap: wrap; }
 .auth-panel__button { white-space: normal; line-height: 1.4; }
 .auth-login-dialog .upload-panel__heading { margin-bottom: 14px; }
@@ -788,7 +797,7 @@
 	.gallery-controls-panel { padding: 12px; }
 	.gallery-search-bar { grid-template-columns: 1fr; gap: 6px; }
 	.gallery-section-filters { justify-content: flex-start; }
-	.gallery-section-filters { flex-wrap: nowrap; align-items: flex-start; overflow-x: auto; overscroll-behavior-inline: contain; padding-bottom: 4px; scrollbar-width: thin; }
+	.gallery-section-filters { flex-wrap: wrap; align-items: flex-start; overflow: visible; padding-bottom: 0; scrollbar-width: auto; }
 	.gallery-section-filters button { flex: 0 0 auto; height: 34px; white-space: nowrap; }
 	.gallery-selection-count { min-width: 60px; }
 }
