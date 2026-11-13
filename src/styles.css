@@ -406,6 +406,69 @@
 }
 
 .upload-actions button:hover:not(:disabled) { background: #1e5c52; }
+.upload-dialog:not(.auth-login-dialog) .upload-panel__heading {
+	margin-bottom: 18px;
+	padding-bottom: 14px;
+	border-bottom: 1px solid var(--ui-border);
+}
+.upload-dialog:not(.auth-login-dialog) .upload-panel__heading h2 {
+	color: var(--ui-text);
+	font: 600 20px/1.35 "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-eyebrow {
+	margin-bottom: 4px;
+	color: var(--ui-accent);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-panel__close {
+	width: 34px;
+	height: 34px;
+	color: var(--ui-muted);
+	border-color: var(--ui-border);
+	border-radius: 6px;
+	font-size: 24px;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-panel__close:hover {
+	color: var(--ui-text);
+	background: #f2f4f7;
+	border-color: #cfd4dc;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-form { gap: 14px; }
+.upload-dialog:not(.auth-login-dialog) .upload-field {
+	gap: 5px;
+	color: var(--ui-text);
+	font: 500 12px/1.4 "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-field input,
+.upload-dialog:not(.auth-login-dialog) .upload-field textarea {
+	border-radius: 6px;
+	font-family: "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-field input[type="file"] {
+	min-height: 40px;
+	padding: 7px;
+	background: #f9fafb;
+	font-size: 12px;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-field input.upload-field__calculated-input {
+	color: var(--ui-muted);
+	background: #f2f4f7;
+	border-style: solid;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-field small { color: var(--ui-muted); }
+.upload-dialog:not(.auth-login-dialog) .upload-field .upload-field__hint { color: var(--ui-accent-strong); }
+.upload-dialog:not(.auth-login-dialog) .upload-actions { align-items: center; justify-content: space-between; gap: 12px; }
+.upload-dialog:not(.auth-login-dialog) .upload-actions button {
+	min-height: 38px;
+	padding: 0 14px;
+	background: var(--ui-accent);
+	border-radius: 6px;
+	font: 600 12px/1.2 "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
+	letter-spacing: 0;
+	text-transform: none;
+}
+.upload-dialog:not(.auth-login-dialog) .upload-actions button:hover:not(:disabled) { background: var(--ui-accent-strong); }
 .upload-actions button:disabled { cursor: wait; opacity: 0.65; }
 .upload-status { margin: 0; color: #287568; font: 12px/1.5 Arial, sans-serif; }
 .upload-status--error { color: #ae4b3b; }
